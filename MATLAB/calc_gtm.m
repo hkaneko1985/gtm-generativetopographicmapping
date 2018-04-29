@@ -51,10 +51,10 @@ for iteration = 1 : numberofiterations
     end
     
     phitGphietc = (phiofmaprbfgridswithone'*diag(sum(responsibilities))*phiofmaprbfgridswithone + lambdainemalgorithm/model.beta*diag(ones(size(phiofmaprbfgridswithone,2) , 1)));
-    if rcond(phitGphietc) < max(size(phitGphietc))*eps(norm(phitGphietc))
-        model.successflag = 0;
-        break;
-    end
+%     if rcond(phitGphietc) < max(size(phitGphietc))*eps(norm(phitGphietc))
+%         model.successflag = 0;
+%         break;
+%     end
     
     model.Wwithone = phitGphietc \ ...
         (phiofmaprbfgridswithone'*responsibilities'*inputdataset);
