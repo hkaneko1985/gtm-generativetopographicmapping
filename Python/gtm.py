@@ -7,6 +7,7 @@
 # GTM (generative topographic mapping) class
 import numpy as np
 from scipy.spatial import distance
+from scipy.stats import norm, multivariate_normal
 from sklearn.decomposition import PCA
 
 class gtm:
@@ -19,6 +20,8 @@ class gtm:
         self.displayflag = displayflag
     
     def fit( self, inputdataset):
+        # inputdataset: numpy.array or pandas.DataFrame
+        # inputdataset must be autoscaled.        
         inputdataset = np.array(inputdataset)
         self.successflag = True
         # make rbf grids
@@ -71,6 +74,8 @@ class gtm:
                 print( "{0}/{1} ... likelihood: {2}".format( iteration+1, self.numberofiterations, self.likelihood( inputdataset)) )
             
     def responsibility( self, inputdataset):
+        # inputdataset: numpy.array or pandas.DataFrame
+        # inputdataset must be autoscaled.     
         inputdataset = np.array(inputdataset)
         distancebetweenphiWandinputdataset = distance.cdist( inputdataset, self.phiofmaprbfgrids.dot(self.W) + np.ones((np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias)))), 'sqeuclidean')
         rbfforresponsibility = np.exp(-self.beta/2.0*(distancebetweenphiWandinputdataset))
@@ -82,6 +87,110 @@ class gtm:
             return np.zeros(rbfforresponsibility.shape)
             
     def likelihood( self, inputdataset):
+        # inputdataset must be autoscaled. 
         inputdataset = np.array(inputdataset)
         distancebetweenphiWandinputdataset = distance.cdist( inputdataset, self.phiofmaprbfgrids.dot(self.W) + np.ones((np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias)))), 'sqeuclidean')
         return ( np.log( (self.beta/2.0/np.pi)**(inputdataset.shape[1]/2.0) / np.prod(self.shapeofmap) * ((np.exp(-self.beta/2.0*(distancebetweenphiWandinputdataset))).sum(axis=0)) )).sum()
+    
+    def mlr( self, X, y):
+        # X, y: numpy.array or pandas.DataFrame
+        # Both X and y must NOT be autoscaled.
+        X = np.array( X )
+        y = np.array( y )
+        y = np.reshape( y, (len(y),1) )
+        # autoscaling
+        self.Xmean = X.mean(axis=0)
+        self.Xstd = X.std(axis=0, ddof=1)
+        autoscaledX = (X -  self.Xmean ) / self.Xstd
+        self.ymean = y.mean(axis=0)
+        self.ystd = y.std(axis=0, ddof=1)
+        autoscaledy = (y -  self.ymean ) / self.ystd
+        self.regressioncoefficients = np.linalg.inv( np.dot(autoscaledX.T, autoscaledX) ).dot( autoscaledX.T.dot( autoscaledy ) )
+        calculatedy = autoscaledX.dot( self.regressioncoefficients ) * self.ystd + self.ymean
+        self.sigma = sum( (y - calculatedy)**2 ) / len(y)
+    
+    def mlrpredict( self, X):
+        # X: numpy.array or pandas.DataFrame
+        # X must NOT be autoscaled.
+        autoscaledX = (X -  self.Xmean ) / self.Xstd
+        return autoscaledX.dot( self.regressioncoefficients ) * self.ystd + self.ymean
+    
+    def inversegtmmlr( self, targetyvalue):
+        # targetvalue must be scaler.
+#        targetyvalues = np.ndarray.flatten( np.array( targetyvalues ) )
+        myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones((np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias))))
+        sigmai = np.diag(np.ones(len(self.regressioncoefficients))) / self.beta
+        invsigmai = np.diag(np.ones(len(self.regressioncoefficients))) * self.beta
+        deltai = np.linalg.inv( invsigmai + self.regressioncoefficients.dot(self.regressioncoefficients.T) / self.sigma )
+#        for targetyvalue in targetyvalues:
+        pxy_means = np.empty( myu_i.shape )
+        for i in range(pxy_means.shape[0]):
+            pxy_means[i,:] = np.ndarray.flatten(deltai.dot( self.regressioncoefficients/self.sigma*targetyvalue + invsigmai.dot(np.reshape(myu_i[i,:], [myu_i.shape[1], 1]) ) ))
+        
+        pyz_means = myu_i.dot( self.regressioncoefficients )
+        pyz_var = self.sigma + self.regressioncoefficients.T.dot(sigmai.dot(self.regressioncoefficients))
+        pyzs = np.empty( len(pyz_means) )
+        for i in range(len(pyz_means)):
+            pyzs[i] = norm.pdf( targetyvalue, pyz_means[i], pyz_var**(1/2))
+            
+        responsibilities_inverse = pyzs / pyzs.sum()
+        estimatedxmean = responsibilities_inverse.dot(pxy_means)
+        estimatedxmode = pxy_means[ np.argmax(responsibilities_inverse), : ]
+        
+        # responsibilities_inverse can be used to discussed assigned grids on the GTM map
+        # pyzs : vector of probability of y given zi, which can be used to discuss applicability domains
+        return estimatedxmean, estimatedxmode, responsibilities_inverse
+
+    def gtmrpredict( self, X):
+        # X: numpy.array or pandas.DataFrame
+        # X must be autoscaled.
+        # Multiple y-variables are OK.
+        # In model, the rigth p variables are handled as y-variables ( p is the number of y-variables ).
+        
+        if self.successflag:
+            X = np.array( X )
+            myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones((np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias))))
+            delta_x = np.diag(np.ones(X.shape[1])) / self.beta
+            px = np.empty( [X.shape[0], myu_i.shape[0]] )
+            for i in range(myu_i.shape[0]):
+                px[:,i] = multivariate_normal.pdf( X, myu_i[i,0:X.shape[1]], delta_x)
+                
+            responsibilities = px.T / px.T.sum(axis=0)
+            responsibilities = responsibilities.T
+            estimatedymean = responsibilities.dot( myu_i[:,X.shape[1]:] )
+            estimatedymode = myu_i[np.argmax( responsibilities, axis=1), X.shape[1]:]
+        else:
+            estimatedymean = np.zeros(X.spape[0])
+            estimatedymode = np.zeros(X.spape[0])
+            responsibilities = np.empty( [X.shape[0], myu_i.shape[0]] )
+        
+        # responsibilities can be used to discussed assigned grids on the GTM map
+        # px [p(x)] : vector of probability of x given myu_x_i and sigma_x_i, which can be used to discuss applicability domains
+        return estimatedymean, estimatedymode, responsibilities, px
+    
+    def inversegtmr( self, targetyvalue):
+        # targetvalue must be one candidate.
+        # But, multiple y-variables are OK.
+        # In model, the rigth m variables are handled as X-variables ( m is the number of X-variables ).
+        
+        myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones((np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias))))
+        delta_y = 1 / self.beta
+        py = np.empty( myu_i.shape[0] )
+        if isinstance(targetyvalue,int) or isinstance(targetyvalue,float):
+            for i in range(myu_i.shape[0]):
+                py[i] = multivariate_normal.pdf( targetyvalue, myu_i[i,-1], delta_y)
+                
+            responsibilities_inverse = py / py.sum()
+            estimatedxmean = responsibilities_inverse.dot( myu_i[:,0:-1] )
+            estimatedxmode = myu_i[np.argmax( responsibilities_inverse), 0:-1]
+        else:
+            for i in range(myu_i.shape[0]):
+                py[i] = multivariate_normal.pdf( targetyvalue, myu_i[i,-len(targetyvalue)], delta_y)
+                
+            responsibilities_inverse = py / py.sum()
+            estimatedxmean = responsibilities_inverse.dot( myu_i[:,0:-len(targetyvalue)] )
+            estimatedxmode = myu_i[np.argmax( responsibilities_inverse), 0:-len(targetyvalue)]
+        
+        # responsibilities_inverse can be used to discussed assigned grids on the GTM map
+        # py [p(y)] : vector of probability of y given myu_y_i and sigma_y_i, which can be used to discuss applicability domains
+        return estimatedxmean, estimatedxmode, responsibilities_inverse, py
