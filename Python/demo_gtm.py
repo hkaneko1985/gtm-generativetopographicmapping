@@ -33,25 +33,26 @@ inputdataset = (inputdataset - inputdataset.mean(axis=0)) / inputdataset.std(axi
 model = gtm( shapeofmap, shapeofrbfcenters, varianceofrbfs, lambdainemalgorithm, numberofiterations, desplayflag)
 model.fit(inputdataset)
 
-# calculate of responsibilities
-responsibilities = model.responsibility(inputdataset)
-
-# plot the mean of responsibilities
-means = responsibilities.dot( model.mapgrids )
-plt.figure(figsize=figure.figaspect(1))
-plt.scatter( means[:,0], means[:,1], c=color)
-plt.ylim(-1.1,1.1)
-plt.xlim(-1.1,1.1)
-plt.xlabel("z1 (mean)")
-plt.ylabel("z2 (mean)")
-plt.show()
-
-# plot the mode of responsibilities
-modes = model.mapgrids[responsibilities.argmax(axis=1), :]
-plt.figure(figsize=figure.figaspect(1))
-plt.scatter( modes[:,0], modes[:,1], c=color)
-plt.ylim(-1.1,1.1)
-plt.xlim(-1.1,1.1)
-plt.xlabel("z1 (mode)")
-plt.ylabel("z2 (mode)")
-plt.show()
+if model.successflag:
+    # calculate of responsibilities
+    responsibilities = model.responsibility(inputdataset)
+    
+    # plot the mean of responsibilities
+    means = responsibilities.dot( model.mapgrids )
+    plt.figure(figsize=figure.figaspect(1))
+    plt.scatter( means[:,0], means[:,1], c=color)
+    plt.ylim(-1.1,1.1)
+    plt.xlim(-1.1,1.1)
+    plt.xlabel("z1 (mean)")
+    plt.ylabel("z2 (mean)")
+    plt.show()
+    
+    # plot the mode of responsibilities
+    modes = model.mapgrids[responsibilities.argmax(axis=1), :]
+    plt.figure(figsize=figure.figaspect(1))
+    plt.scatter( modes[:,0], modes[:,1], c=color)
+    plt.ylim(-1.1,1.1)
+    plt.xlim(-1.1,1.1)
+    plt.xlabel("z1 (mode)")
+    plt.ylabel("z2 (mode)")
+    plt.show()
