@@ -13,7 +13,7 @@ candidatesofshapeofrbfcenters = np.arange( 2, 22, 2, dtype=int)
 candidatesofvarianceofrbfs = 2**np.arange( -5, 4, 2, dtype=float)
 candidatesoflambdainemalgorithm = 2**np.arange( -4, 0, dtype=float)
 candidatesoflambdainemalgorithm = np.append( 0, candidatesoflambdainemalgorithm)
-numberofiterations = 200
+numberofiterations = 300
 desplayflag = 0
 k = 10
 

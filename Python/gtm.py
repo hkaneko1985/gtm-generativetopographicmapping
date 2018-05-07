@@ -90,7 +90,7 @@ class gtm:
         # inputdataset must be autoscaled. 
         inputdataset = np.array(inputdataset)
         distancebetweenphiWandinputdataset = distance.cdist( inputdataset, self.phiofmaprbfgrids.dot(self.W) + np.ones((np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias)))), 'sqeuclidean')
-        return ( np.log( (self.beta/2.0/np.pi)**(inputdataset.shape[1]/2.0) / np.prod(self.shapeofmap) * ((np.exp(-self.beta/2.0*(distancebetweenphiWandinputdataset))).sum(axis=0)) )).sum()
+        return ( np.log( (self.beta/2.0/np.pi)**(inputdataset.shape[1]/2.0) / np.prod(self.shapeofmap) * ((np.exp(-self.beta/2.0*(distancebetweenphiWandinputdataset))).sum(axis=1)) )).sum()
     
     def mlr( self, X, y):
         # X, y: numpy.array or pandas.DataFrame

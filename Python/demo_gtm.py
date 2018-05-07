@@ -11,8 +11,7 @@ shapeofmap = [10, 10]
 shapeofrbfcenters = [5, 5]
 varianceofrbfs = 4
 lambdainemalgorithm = 0.001
-numberofiterations = 200
-#numberofiterations = 10
+numberofiterations = 300
 desplayflag = 1
 
 from sklearn.datasets import load_iris
