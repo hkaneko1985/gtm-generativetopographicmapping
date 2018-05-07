@@ -6,7 +6,7 @@ candidatesofshapeofmap = 30;
 candidatesofshapeofrbfcenters = 2:2:20;
 candidatesofvarianceofrbfs = 2.^(-5:2:3);
 candidatesoflambdainemalgorithm = [0 10.^(-4:-1)];
-numberofiterations = 200;
+numberofiterations = 300;
 displayflag = 0;
 k = 10;
 

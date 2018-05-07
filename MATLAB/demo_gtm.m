@@ -6,7 +6,7 @@ shapeofmap = [ 10, 10 ];
 shapeofrbfcenters = [ 5, 5 ];
 varianceofrbfs = 4;
 lambdainemalgorithm = 0.001;
-numberofiterations = 500;
+numberofiterations = 300;
 displayflag = 1;
 
 % load an iris dataset

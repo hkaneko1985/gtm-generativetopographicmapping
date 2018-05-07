@@ -8,7 +8,7 @@ shapeofmap = [ 30, 30];
 shapeofrbfcenters = [ 4, 4];
 varianceofrbfs = 2;
 lambdainemalgorithm = 0.0001;
-numberofiterations = 200;
+numberofiterations = 300;
 displayflag = 1;
 k = 10;
 
