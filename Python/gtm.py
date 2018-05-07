@@ -11,7 +11,7 @@ from scipy.stats import norm, multivariate_normal
 from sklearn.decomposition import PCA
 
 class gtm:
-    def __init__( self, shapeofmap=[30,30], shapeofrbfcenters=[10,10], varianceofrbfs=4, lambdainemalgorithm=0.001, numberofiterations=200, displayflag=1):
+    def __init__(self, shapeofmap=[30,30], shapeofrbfcenters=[10,10], varianceofrbfs=4, lambdainemalgorithm=0.001, numberofiterations=200, displayflag=1):
         self.shapeofmap = shapeofmap
         self.shapeofrbfcenters = shapeofrbfcenters
         self.varianceofrbfs = varianceofrbfs
@@ -19,7 +19,7 @@ class gtm:
         self.numberofiterations = numberofiterations
         self.displayflag = displayflag
     
-    def fit( self, inputdataset):
+    def fit(self, inputdataset):
         # inputdataset: numpy.array or pandas.DataFrame
         # inputdataset must be autoscaled.        
         inputdataset = np.array(inputdataset)
@@ -73,7 +73,7 @@ class gtm:
             if self.displayflag:
                 print( "{0}/{1} ... likelihood: {2}".format( iteration+1, self.numberofiterations, self.likelihood( inputdataset)) )
             
-    def responsibility( self, inputdataset):
+    def responsibility(self, inputdataset):
         # inputdataset: numpy.array or pandas.DataFrame
         # inputdataset must be autoscaled.     
         inputdataset = np.array(inputdataset)
@@ -86,13 +86,13 @@ class gtm:
         else:
             return np.zeros(rbfforresponsibility.shape)
             
-    def likelihood( self, inputdataset):
+    def likelihood(self, inputdataset):
         # inputdataset must be autoscaled. 
         inputdataset = np.array(inputdataset)
         distancebetweenphiWandinputdataset = distance.cdist( inputdataset, self.phiofmaprbfgrids.dot(self.W) + np.ones((np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias)))), 'sqeuclidean')
         return ( np.log( (self.beta/2.0/np.pi)**(inputdataset.shape[1]/2.0) / np.prod(self.shapeofmap) * ((np.exp(-self.beta/2.0*(distancebetweenphiWandinputdataset))).sum(axis=1)) )).sum()
     
-    def mlr( self, X, y):
+    def mlr(self, X, y):
         # X, y: numpy.array or pandas.DataFrame
         # Both X and y must NOT be autoscaled.
         X = np.array( X )
@@ -109,13 +109,13 @@ class gtm:
         calculatedy = autoscaledX.dot( self.regressioncoefficients ) * self.ystd + self.ymean
         self.sigma = sum( (y - calculatedy)**2 ) / len(y)
     
-    def mlrpredict( self, X):
+    def mlrpredict(self, X):
         # X: numpy.array or pandas.DataFrame
         # X must NOT be autoscaled.
         autoscaledX = (X -  self.Xmean ) / self.Xstd
         return autoscaledX.dot( self.regressioncoefficients ) * self.ystd + self.ymean
     
-    def inversegtmmlr( self, targetyvalue):
+    def inversegtmmlr(self, targetyvalue):
         # targetvalue must be scaler.
 #        targetyvalues = np.ndarray.flatten( np.array( targetyvalues ) )
         myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones((np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias))))
@@ -141,7 +141,7 @@ class gtm:
         # pyzs : vector of probability of y given zi, which can be used to discuss applicability domains
         return estimatedxmean, estimatedxmode, responsibilities_inverse
 
-    def gtmrpredict( self, X):
+    def gtmrpredict(self, X):
         # X: numpy.array or pandas.DataFrame
         # X must be autoscaled.
         # Multiple y-variables are OK.
