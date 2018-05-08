@@ -52,18 +52,18 @@ class gtm:
                                         / self.varianceofrbfs)
 
         # PCA for initializing W and beta
-        pcamodel = PCA(n_components = 3)
+        pcamodel = PCA(n_components=3)
         pcamodel.fit_transform(inputdataset)
         if np.linalg.matrix_rank(self.phiofmaprbfgrids) < min(self.phiofmaprbfgrids.shape):
             self.successflag = False
             return
         self.W = np.linalg.pinv(self.phiofmaprbfgrids).dot(
-                         self.mapgrids.dot(pcamodel.components_[0:2,:]))
+                         self.mapgrids.dot(pcamodel.components_[0:2, :]))
         self.beta = min(pcamodel.explained_variance_[2], 1/(
                         (
                             distance.cdist(self.phiofmaprbfgrids.dot(self.W),
                             self.phiofmaprbfgrids.dot(self.W))
-                        + np.diag(np.ones(np.prod(self.shapeofmap))*10**100)
+                            + np.diag(np.ones(np.prod(self.shapeofmap))*10**100)
                         ).min(axis=0).mean()/2))
         self.bias = inputdataset.mean(axis=0)
 
@@ -89,8 +89,8 @@ class gtm:
                   * distance.cdist(inputdataset,
                    phiofmaprbfgridswithone.dot(self.Wwithone))**2).sum()
 
-            self.W = self.Wwithone[:-1,:]
-            self.bias = self.Wwithone[-1,:]
+            self.W = self.Wwithone[:-1, :]
+            self.bias = self.Wwithone[-1, :]
 
             if self.displayflag:
                 print("{0}/{1} ... likelihood: {2}".format(
@@ -103,15 +103,15 @@ class gtm:
         inputdataset = np.array(inputdataset)
         distancebetweenphiWandinputdataset = distance.cdist(
            inputdataset, self.phiofmaprbfgrids.dot(self.W) 
-           + np.ones((np.prod(self.shapeofmap),1)).dot(
-           np.reshape(self.bias,(1,len(self.bias)))), 'sqeuclidean')
+           + np.ones((np.prod(self.shapeofmap), 1)).dot(
+           np.reshape(self.bias, (1, len(self.bias)))), 'sqeuclidean')
         rbfforresponsibility = np.exp(-self.beta/2.0
                                    *(distancebetweenphiWandinputdataset))
         sumrbfforresponsibility = rbfforresponsibility.sum(axis=1)
 #        return rbfforresponsibility / np.reshape( sumrbfforresponsibility, (rbfforresponsibility.shape[0],1))
         if np.count_nonzero(sumrbfforresponsibility) == len(sumrbfforresponsibility):
             return rbfforresponsibility / np.reshape(sumrbfforresponsibility,
-                        (rbfforresponsibility.shape[0],1))
+                        (rbfforresponsibility.shape[0], 1))
         else:
             return np.zeros(rbfforresponsibility.shape)
 
@@ -121,8 +121,8 @@ class gtm:
         distancebetweenphiWandinputdataset = distance.cdist(
                inputdataset, self.phiofmaprbfgrids.dot(self.W) +
                np.ones((np.prod(self.shapeofmap),1)).dot(
-               np.reshape(self.bias,(1,len(self.bias)))), 'sqeuclidean')
-        return (np.log( (self.beta/2.0/np.pi)**(inputdataset.shape[1]/2.0) /
+               np.reshape(self.bias, (1, len(self.bias)))), 'sqeuclidean')
+        return (np.log((self.beta/2.0/np.pi)**(inputdataset.shape[1]/2.0) /
                  np.prod(self.shapeofmap) * ((
                  np.exp(-self.beta/2.0*(distancebetweenphiWandinputdataset))
                 ).sum(axis=1)) )).sum()
@@ -132,16 +132,16 @@ class gtm:
         # Both X and y must NOT be autoscaled.
         X = np.array(X)
         y = np.array(y)
-        y = np.reshape(y, (len(y),1))
+        y = np.reshape(y, (len(y), 1))
         # autoscaling
         self.Xmean = X.mean(axis=0)
         self.Xstd = X.std(axis=0, ddof=1)
-        autoscaledX = (X -  self.Xmean) / self.Xstd
+        autoscaledX = (X - self.Xmean) / self.Xstd
         self.ymean = y.mean(axis=0)
         self.ystd = y.std(axis=0, ddof=1)
         autoscaledy = (y - self.ymean) / self.ystd
         self.regressioncoefficients = np.linalg.inv(
-          np.dot(autoscaledX.T, autoscaledX)).dot( autoscaledX.T.dot(autoscaledy))
+          np.dot(autoscaledX.T, autoscaledX)).dot(autoscaledX.T.dot(autoscaledy))
         calculatedy = autoscaledX.dot(self.regressioncoefficients) * self.ystd + self.ymean
         self.sigma = sum((y - calculatedy)**2) / len(y)
 
@@ -155,7 +155,7 @@ class gtm:
         # targetvalue must be scaler.
 #        targetyvalues = np.ndarray.flatten(np.array(targetyvalues))
         myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones(
-        (np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias))))
+        (np.prod(self.shapeofmap), 1)).dot(np.reshape(self.bias, (1, len(self.bias))))
         sigmai = np.diag(np.ones(len(self.regressioncoefficients))) / self.beta
         invsigmai = np.diag(np.ones(len(self.regressioncoefficients))) * self.beta
         deltai = np.linalg.inv(invsigmai 
@@ -193,16 +193,16 @@ class gtm:
         if self.successflag:
             X = np.array(X)
             myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones(
-                                          (np.prod(self.shapeofmap),1)
-                            ).dot(np.reshape(self.bias,(1,len(self.bias))))
+                                          (np.prod(self.shapeofmap), 1)
+                            ).dot(np.reshape(self.bias, (1, len(self.bias))))
             delta_x = np.diag(np.ones(X.shape[1])) / self.beta
             px = np.empty([X.shape[0], myu_i.shape[0]])
             for i in range(myu_i.shape[0]):
-                px[:,i] = multivariate_normal.pdf(X, myu_i[i,0:X.shape[1]], delta_x)
+                px[:,i] = multivariate_normal.pdf(X, myu_i[i, 0:X.shape[1]], delta_x)
 
             responsibilities = px.T / px.T.sum(axis=0)
             responsibilities = responsibilities.T
-            estimatedymean = responsibilities.dot(myu_i[:,X.shape[1]:] )
+            estimatedymean = responsibilities.dot(myu_i[:, X.shape[1]:] )
             estimatedymode = myu_i[np.argmax(responsibilities, axis=1), X.shape[1]:]
         else:
             estimatedymean = np.zeros(X.spape[0])
@@ -219,23 +219,23 @@ class gtm:
         # In model, the rigth m variables are handled as X-variables ( m is the number of X-variables ).
 
         myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones(
-           (np.prod(self.shapeofmap),1)).dot(np.reshape(self.bias,(1,len(self.bias))))
+           (np.prod(self.shapeofmap), 1)).dot(np.reshape(self.bias, (1, len(self.bias))))
         delta_y = 1 / self.beta
         py = np.empty(myu_i.shape[0])
         if isinstance(targetyvalue,int) or isinstance(targetyvalue,float):
             for i in range(myu_i.shape[0]):
-                py[i] = multivariate_normal.pdf(targetyvalue, myu_i[i,-1], delta_y)
+                py[i] = multivariate_normal.pdf(targetyvalue, myu_i[i, -1], delta_y)
 
             responsibilities_inverse = py / py.sum()
-            estimatedxmean = responsibilities_inverse.dot( myu_i[:,0:-1] )
+            estimatedxmean = responsibilities_inverse.dot( myu_i[:, 0:-1] )
             estimatedxmode = myu_i[np.argmax(responsibilities_inverse), 0:-1]
         else:
             for i in range(myu_i.shape[0]):
                 py[i] = multivariate_normal.pdf(
-                        targetyvalue, myu_i[i,-len(targetyvalue)], delta_y)
+                        targetyvalue, myu_i[i, -len(targetyvalue)], delta_y)
 
             responsibilities_inverse = py / py.sum()
-            estimatedxmean = responsibilities_inverse.dot(myu_i[:,0:-len(targetyvalue)])
+            estimatedxmean = responsibilities_inverse.dot(myu_i[:, 0:-len(targetyvalue)])
             estimatedxmode = myu_i[np.argmax(responsibilities_inverse), 0:-len(targetyvalue)]
 
         # responsibilities_inverse can be used to discussed assigned grids on the GTM map
