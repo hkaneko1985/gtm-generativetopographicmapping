@@ -46,8 +46,8 @@ class gtm:
                                              self.shapeofmap[1])
 
         # calculate phi of mapgrids and rbfgrids
-        distancebetweenmapandrbfgrids = cdist(self.mapgrids,
-                                             self.rbfgrids, 'sqeuclidean')
+        distancebetweenmapandrbfgrids = cdist(self.mapgrids, self.rbfgrids,
+                                              'sqeuclidean')
         self.phiofmaprbfgrids = np.exp(-distancebetweenmapandrbfgrids / 2.0
                                         / self.varianceofrbfs)
 
@@ -97,16 +97,22 @@ class gtm:
                      iteration+1, self.numberofiterations,
                      self.likelihood(inputdataset)))
 
+    def calculate_distance_between_phiW_and_input_distances(self, input_dataset):
+        distance = cdist(
+           input_dataset,
+           self.phiofmaprbfgrids.dot(self.W)
+           + np.ones((np.prod(self.shapeofmap), 1)).dot(
+                 np.reshape(self.bias, (1, len(self.bias)))
+             ),
+           'sqeuclidean')
+        return distance
+
     def responsibility(self, inputdataset):
         # inputdataset: numpy.array or pandas.DataFrame
         # inputdataset must be autoscaled.
         inputdataset = np.array(inputdataset)
-        distancebetweenphiWandinputdataset = cdist(
-           inputdataset, self.phiofmaprbfgrids.dot(self.W) 
-           + np.ones((np.prod(self.shapeofmap), 1)).dot(
-           np.reshape(self.bias, (1, len(self.bias)))), 'sqeuclidean')
-        rbfforresponsibility = np.exp(-self.beta/2.0
-                                   *(distancebetweenphiWandinputdataset))
+        distance = self.calculate_distance_between_phiW_and_input_distances(inputdataset)
+        rbfforresponsibility = np.exp(-self.beta/2.0*distance)
         sumrbfforresponsibility = rbfforresponsibility.sum(axis=1)
 #        return rbfforresponsibility / np.reshape( sumrbfforresponsibility, (rbfforresponsibility.shape[0],1))
         if np.count_nonzero(sumrbfforresponsibility) == len(sumrbfforresponsibility):
@@ -118,14 +124,9 @@ class gtm:
     def likelihood(self, inputdataset):
         # inputdataset must be autoscaled.
         inputdataset = np.array(inputdataset)
-        distancebetweenphiWandinputdataset = cdist(
-               inputdataset, self.phiofmaprbfgrids.dot(self.W) +
-               np.ones((np.prod(self.shapeofmap),1)).dot(
-               np.reshape(self.bias, (1, len(self.bias)))), 'sqeuclidean')
+        distance = self.calculate_distance_between_phiW_and_input_distances(inputdataset)
         return (np.log((self.beta/2.0/np.pi)**(inputdataset.shape[1]/2.0) /
-                 np.prod(self.shapeofmap) * ((
-                 np.exp(-self.beta/2.0*(distancebetweenphiWandinputdataset))
-                ).sum(axis=1)) )).sum()
+                np.prod(self.shapeofmap) * np.exp(-self.beta/2.0*distance).sum(axis=1))).sum()
 
     def mlr(self, X, y):
         # X, y: numpy.array or pandas.DataFrame
