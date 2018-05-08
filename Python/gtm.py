@@ -6,7 +6,7 @@
 
 # GTM (generative topographic mapping) class
 import numpy as np
-from scipy.spatial import distance
+from scipy.spatial.distance import cdist 
 from scipy.stats import norm, multivariate_normal
 from sklearn.decomposition import PCA
 
@@ -46,7 +46,7 @@ class gtm:
                                              self.shapeofmap[1])
 
         # calculate phi of mapgrids and rbfgrids
-        distancebetweenmapandrbfgrids = distance.cdist(self.mapgrids,
+        distancebetweenmapandrbfgrids = cdist(self.mapgrids,
                                              self.rbfgrids, 'sqeuclidean')
         self.phiofmaprbfgrids = np.exp(-distancebetweenmapandrbfgrids / 2.0
                                         / self.varianceofrbfs)
@@ -61,7 +61,7 @@ class gtm:
                          self.mapgrids.dot(pcamodel.components_[0:2, :]))
         self.beta = min(pcamodel.explained_variance_[2], 1/(
                         (
-                            distance.cdist(self.phiofmaprbfgrids.dot(self.W),
+                            cdist(self.phiofmaprbfgrids.dot(self.W),
                             self.phiofmaprbfgrids.dot(self.W))
                             + np.diag(np.ones(np.prod(self.shapeofmap))*10**100)
                         ).min(axis=0).mean()/2))
@@ -86,7 +86,7 @@ class gtm:
             self.Wwithone = np.linalg.inv(phitGphietc).dot(
                  phiofmaprbfgridswithone.T.dot(responsibilities.T.dot(inputdataset)))
             self.beta = inputdataset.size / (responsibilities
-                  * distance.cdist(inputdataset,
+                  * cdist(inputdataset,
                    phiofmaprbfgridswithone.dot(self.Wwithone))**2).sum()
 
             self.W = self.Wwithone[:-1, :]
@@ -101,7 +101,7 @@ class gtm:
         # inputdataset: numpy.array or pandas.DataFrame
         # inputdataset must be autoscaled.
         inputdataset = np.array(inputdataset)
-        distancebetweenphiWandinputdataset = distance.cdist(
+        distancebetweenphiWandinputdataset = cdist(
            inputdataset, self.phiofmaprbfgrids.dot(self.W) 
            + np.ones((np.prod(self.shapeofmap), 1)).dot(
            np.reshape(self.bias, (1, len(self.bias)))), 'sqeuclidean')
@@ -118,7 +118,7 @@ class gtm:
     def likelihood(self, inputdataset):
         # inputdataset must be autoscaled.
         inputdataset = np.array(inputdataset)
-        distancebetweenphiWandinputdataset = distance.cdist(
+        distancebetweenphiWandinputdataset = cdist(
                inputdataset, self.phiofmaprbfgrids.dot(self.W) +
                np.ones((np.prod(self.shapeofmap),1)).dot(
                np.reshape(self.bias, (1, len(self.bias)))), 'sqeuclidean')
