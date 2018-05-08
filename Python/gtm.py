@@ -23,30 +23,27 @@ class gtm:
         self.numberofiterations = numberofiterations
         self.displayflag = displayflag
 
+    def calculate_grids(self, num_x, num_y):
+        grids_x, grids_y = np.meshgrid(np.arange(0.0, num_x), np.arange(0.0, num_y))
+        grids = np.c_[np.ndarray.flatten(grids_x)[:, np.newaxis],
+                      np.ndarray.flatten(grids_y)[:, np.newaxis]]
+        max_grids = grids.max(axis=0)
+        grids[:, 0] = 2 * (grids[:, 0]-max_grids[0]/2) / max_grids[0]
+        grids[:, 1] = 2 * (grids[:, 1]-max_grids[1]/2) / max_grids[1]
+        return grids
+
     def fit(self, inputdataset):
         # inputdataset: numpy.array or pandas.DataFrame
         # inputdataset must be autoscaled.
         inputdataset = np.array(inputdataset)
         self.successflag = True
         # make rbf grids
-        [rbfgridsx, rbfgridsy] = np.meshgrid(
-                               np.arange(0.0, self.shapeofrbfcenters[0]),
-                               np.arange(0.0, self.shapeofrbfcenters[1]));
-        self.rbfgrids = np.c_[np.ndarray.flatten(rbfgridsx)[:,np.newaxis],
-                              np.ndarray.flatten(rbfgridsy)[:,np.newaxis] ]
-        maxrbfgrids= self.rbfgrids.max(axis=0)
-        self.rbfgrids[:,0] = 2*(self.rbfgrids[:,0] - maxrbfgrids[0]/2) / maxrbfgrids[0]
-        self.rbfgrids[:,1] = 2*(self.rbfgrids[:,1] - maxrbfgrids[1]/2) / maxrbfgrids[1]
+        self.rbfgrids = self.calculate_grids(self.shapeofrbfcenters[0],
+                                             self.shapeofrbfcenters[1])
 
         # make map grids
-        [mapgridsx, mapgridsy] = np.meshgrid(
-                               np.arange(0.0, self.shapeofmap[0]),
-                               np.arange(0.0, self.shapeofmap[1]));
-        self.mapgrids = np.c_[np.ndarray.flatten(mapgridsx)[:,np.newaxis],
-                              np.ndarray.flatten(mapgridsy)[:,np.newaxis] ]
-        maxmapgrids= self.mapgrids.max(axis=0)
-        self.mapgrids[:,0] = 2*(self.mapgrids[:,0] - maxmapgrids[0]/2) / maxmapgrids[0]
-        self.mapgrids[:,1] = 2*(self.mapgrids[:,1] - maxmapgrids[1]/2) / maxmapgrids[1]
+        self.mapgrids = self.calculate_grids(self.shapeofmap[0],
+                                             self.shapeofmap[1])
 
         # calculate phi of mapgrids and rbfgrids
         distancebetweenmapandrbfgrids = distance.cdist(self.mapgrids,
