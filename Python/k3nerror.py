@@ -8,6 +8,19 @@ def _calculate_distance(X, sample_number):
            )
 
 
+def _calculate_k3nerror(sample_number, X1, X2, k):
+    X1_distance = _calculate_distance(X1, sample_number)
+    X1_sorted_index = np.delete(np.argsort(X1_distance), 0)
+
+    X2_distance = _calculate_distance(X2, sample_number)
+    X2_sorted_index = np.delete(np.argsort(X2_distance), 0)
+    X2_distance[X2_distance==0] = np.min(X2_distance[X2_distance!=0])
+
+    return ((np.sort(X2_distance[X1_sorted_index[0:k]])
+                         - X2_distance[X2_sorted_index[0:k]])
+            / X2_distance[X2_sorted_index[0:k]]).sum()
+
+
 def k3nerror(X1, X2, k):
     """
     k-nearest neighbor normalized error (k3n-error)
@@ -34,19 +47,8 @@ def k3nerror(X1, X2, k):
     sum_of_k3nerror = 0
     X1 = np.array(X1)
     X2 = np.array(X2)
-    for sample_number in range(X1.shape[0]):
-        X1_distance = _calculate_distance(X1, sample_number)
-        X1_sorted_index = np.delete(np.argsort(X1_distance), 0)
-
-        X2_distance = _calculate_distance(X2, sample_number)
-        X2_sorted_index = np.delete(np.argsort(X2_distance), 0)
-        X2_distance[X2_distance==0] = np.min(X2_distance[X2_distance!=0])
-
-        sum_of_k3nerror += (
-                            (np.sort(X2_distance[X1_sorted_index[0:k]])
-                            - X2_distance[X2_sorted_index[0:k]])
-                            / X2_distance[X2_sorted_index[0:k]]
-                           ).sum()
-
+    k3nerrors = [_calculate_k3nerror(sample_number, X1, X2, k)
+                                    for sample_number in range(X1.shape[0])]
+    sum_of_k3nerror = sum(k3nerrors)
     return sum_of_k3nerror / X1.shape[0] / k
 
