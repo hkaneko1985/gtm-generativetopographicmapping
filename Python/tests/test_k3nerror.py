@@ -34,7 +34,7 @@ class K3NErrorTestCase(unittest.TestCase):
         k = 10
         actual = k3nerror(self.X, self.means, k)
         expected = 0.8332434958
-        self.assertAlmostEqual(expected, actual, places=9)
+        self.assertAlmostEqual(expected, actual, places=8)
 
     def get_k3nerror_calculation_speed(self):
         k = 10

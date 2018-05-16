@@ -1,24 +1,6 @@
 # coding: utf-8
 import numpy as np
-
-
-def _calculate_distance(X, sample_number):
-    return np.ndarray.flatten(
-               np.sqrt(((X[:, np.newaxis]-X[sample_number, :])**2).sum(axis=2))
-           )
-
-
-def _calculate_k3nerror(sample_number, X1, X2, k):
-    X1_distance = _calculate_distance(X1, sample_number)
-    X1_sorted_index = np.delete(np.argsort(X1_distance), 0)
-
-    X2_distance = _calculate_distance(X2, sample_number)
-    X2_sorted_index = np.delete(np.argsort(X2_distance), 0)
-    X2_distance[X2_distance==0] = np.min(X2_distance[X2_distance!=0])
-
-    return ((np.sort(X2_distance[X1_sorted_index[0:k]])
-                         - X2_distance[X2_sorted_index[0:k]])
-            / X2_distance[X2_sorted_index[0:k]]).sum()
+from scipy.spatial import distance
 
 
 def k3nerror(X1, X2, k):
@@ -44,11 +26,33 @@ def k3nerror(X1, X2, k):
     k3nerror : float
         k3n-Z-error or k3n-X-error
     """
-    sum_of_k3nerror = 0
     X1 = np.array(X1)
     X2 = np.array(X2)
-    k3nerrors = [_calculate_k3nerror(sample_number, X1, X2, k)
-                                    for sample_number in range(X1.shape[0])]
-    sum_of_k3nerror = sum(k3nerrors)
-    return sum_of_k3nerror / X1.shape[0] / k
+
+    X1_dist = distance.cdist(X1, X1)
+    X1_sorted_indices = np.argsort(X1_dist, axis=1)
+    X2_dist = distance.cdist(X2, X2)
+
+    for i in range(X2.shape[0]):
+        _replace_zero_with_min(X2_dist[i, :])
+
+    I = np.eye(len(X1_dist), dtype=bool)
+    neighbor_dist_in_X1 = np.sort(X2_dist[:, X1_sorted_indices[:, 1:k+1]][I])
+    neighbor_dist_in_X2 = np.sort(X2_dist)[:, 1:k+1]
+
+    sum_k3nerror = (
+            (neighbor_dist_in_X1 - neighbor_dist_in_X2) / neighbor_dist_in_X2
+           ).sum()
+    return sum_k3nerror / X1.shape[0] / k
+
+
+def _replace_zero_with_min(arr):
+    """
+    Replace zero element in array to smallest value after zero.
+
+    Parameters
+    ----------
+    arr: numpy.array
+    """
+    arr[arr==0] = np.min(arr[arr!=0])
 
