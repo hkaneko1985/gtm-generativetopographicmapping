@@ -34,7 +34,7 @@ def k3nerror(X1, X2, k):
     X2_dist = distance.cdist(X2, X2)
 
     for i in range(X2.shape[0]):
-        _replace_zero_with_min(X2_dist[i, :])
+        _replace_zero_with_the_smallest_positive_values(X2_dist[i, :])
 
     I = np.eye(len(X1_dist), dtype=bool)
     neighbor_dist_in_X1 = np.sort(X2_dist[:, X1_sorted_indices[:, 1:k+1]][I])
@@ -46,9 +46,9 @@ def k3nerror(X1, X2, k):
     return sum_k3nerror / X1.shape[0] / k
 
 
-def _replace_zero_with_min(arr):
+def _replace_zero_with_the_smallest_positive_values(arr):
     """
-    Replace zero element in array to smallest value after zero.
+    Replace zeros in array with the smallest positive values.
 
     Parameters
     ----------
