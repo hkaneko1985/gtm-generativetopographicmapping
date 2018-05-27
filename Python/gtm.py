@@ -24,6 +24,14 @@ class gtm:
         self.displayflag = displayflag
 
     def calculate_grids(self, num_x, num_y):
+        """
+        Parameters
+        ----------
+        num_x : int
+            number_of_x_grids
+        num_y : int
+            number_of_y_grids
+        """
         grids_x, grids_y = np.meshgrid(np.arange(0.0, num_x), np.arange(0.0, num_y))
         grids = np.c_[np.ndarray.flatten(grids_x)[:, np.newaxis],
                       np.ndarray.flatten(grids_y)[:, np.newaxis]]
@@ -33,8 +41,13 @@ class gtm:
         return grids
 
     def fit(self, inputdataset):
-        # inputdataset: numpy.array or pandas.DataFrame
-        # inputdataset must be autoscaled.
+        """
+        Parameters
+        ----------
+        inputdataset : numpy.array or pandas.DataFrame
+             Training dataset for GTM.
+             inputdataset must be autoscaled.
+        """
         inputdataset = np.array(inputdataset)
         self.successflag = True
         # make rbf grids
@@ -98,6 +111,10 @@ class gtm:
                      self.likelihood(inputdataset)))
 
     def calculate_distance_between_phiW_and_input_distances(self, input_dataset):
+        """
+        inputdataset : numpy.array
+             Training dataset for GTM.
+        """
         distance = cdist(
            input_dataset,
            self.phiofmaprbfgrids.dot(self.W)
@@ -108,8 +125,20 @@ class gtm:
         return distance
 
     def responsibility(self, inputdataset):
-        # inputdataset: numpy.array or pandas.DataFrame
-        # inputdataset must be autoscaled.
+        """
+        Get responsibilities.
+
+        Parameters
+        ----------
+        inputdataset : numpy.array or pandas.DataFrame
+             Training dataset for GTM.
+             inputdataset must be autoscaled.
+
+        Returns
+        -------
+        reponsibilities : numpy.array
+            Responsibilities of inputdataset for each grid point. 
+        """
         inputdataset = np.array(inputdataset)
         distance = self.calculate_distance_between_phiW_and_input_distances(inputdataset)
         rbfforresponsibility = np.exp(-self.beta/2.0*distance)
@@ -122,15 +151,32 @@ class gtm:
             return np.zeros(rbfforresponsibility.shape)
 
     def likelihood(self, inputdataset):
-        # inputdataset must be autoscaled.
+        """
+        Get likelihood.
+
+        Parameters
+        ----------
+        inputdataset : numpy.array or pandas.DataFrame
+             Training dataset for GTM.
+             inputdataset must be autoscaled.
+
+        Returns
+        -------
+        likelihood : numpy.array
+            likelihood of inputdataset for each grid point. 
+        """
         inputdataset = np.array(inputdataset)
         distance = self.calculate_distance_between_phiW_and_input_distances(inputdataset)
         return (np.log((self.beta/2.0/np.pi)**(inputdataset.shape[1]/2.0) /
                 np.prod(self.shapeofmap) * np.exp(-self.beta/2.0*distance).sum(axis=1))).sum()
 
     def mlr(self, X, y):
-        # X, y: numpy.array or pandas.DataFrame
-        # Both X and y must NOT be autoscaled.
+        """
+        Parameters
+        ----------
+        X, y : numpy.array or pandas.DataFrame
+            Both X and y must NOT be autoscaled.
+        """
         X = np.array(X)
         y = np.array(y)
         y = np.reshape(y, (len(y), 1))
@@ -142,18 +188,32 @@ class gtm:
         self.ystd = y.std(axis=0, ddof=1)
         autoscaledy = (y - self.ymean) / self.ystd
         self.regressioncoefficients = np.linalg.inv(
-          np.dot(autoscaledX.T, autoscaledX)).dot(autoscaledX.T.dot(autoscaledy))
-        calculatedy = autoscaledX.dot(self.regressioncoefficients) * self.ystd + self.ymean
+                                         np.dot(autoscaledX.T, autoscaledX)
+                                      ).dot(autoscaledX.T.dot(autoscaledy))
+        calculatedy = (autoscaledX.dot(self.regressioncoefficients) 
+                       * self.ystd + self.ymean)
         self.sigma = sum((y - calculatedy)**2) / len(y)
 
     def mlrpredict(self, X):
-        # X: numpy.array or pandas.DataFrame
-        # X must NOT be autoscaled.
+        """
+        Parameters
+        ----------
+        X : numpy.array or pandas.DataFrame
+            X must NOT be autoscaled.
+        """
         autoscaledX = (X -  self.Xmean) / self.Xstd
-        return autoscaledX.dot(self.regressioncoefficients) * self.ystd + self.ymean
+        return (autoscaledX.dot(self.regressioncoefficients) 
+                * self.ystd + self.ymean)
 
     def inversegtmmlr(self, targetyvalue):
-        # targetvalue must be scaler.
+        """
+        targetvalue must be scaler.
+
+        Returns
+        -------
+        responsibilities_inverse can be used to discussed assigned grids on
+        the GTM map.
+        """
 #        targetyvalues = np.ndarray.flatten(np.array(targetyvalues))
         myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones(
         (np.prod(self.shapeofmap), 1)).dot(np.reshape(self.bias, (1, len(self.bias))))
@@ -181,16 +241,28 @@ class gtm:
         estimatedxmean = responsibilities_inverse.dot(pxy_means)
         estimatedxmode = pxy_means[ np.argmax(responsibilities_inverse), : ]
 
-        # responsibilities_inverse can be used to discussed assigned grids on the GTM map
-        # pyzs : vector of probability of y given zi, which can be used to discuss applicability domains
+        # pyzs : vector of probability of y given zi, which can be used to
+        #        discuss applicability domains
         return estimatedxmean, estimatedxmode, responsibilities_inverse
 
     def gtmrpredict(self, X):
-        # X: numpy.array or pandas.DataFrame
-        # X must be autoscaled.
-        # Multiple y-variables are OK.
-        # In model, the rigth p variables are handled as y-variables ( p is the number of y-variables ).
+        """
+        Parameters
+        ----------
+        X : numpy.array or pandas.DataFrame
+            X must be autoscaled.
+        Multiple y-variables are OK.
+        In model, the rigth p variables are handled as y-variables ( p is the
+        number of y-variables ).
 
+        Returns
+        responsibilities can be used to discussed assigned grids on the GTM
+        map.
+        px [p(x)] : vector of probability of x given myu_x_i and sigma_x_i,
+        which can be used to discuss applicability domains.
+        -------
+
+        """
         if self.successflag:
             X = np.array(X)
             myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones(
@@ -210,15 +282,23 @@ class gtm:
             estimatedymode = np.zeros(X.spape[0])
             responsibilities = np.empty([X.shape[0], myu_i.shape[0]])
 
-        # responsibilities can be used to discussed assigned grids on the GTM map
-        # px [p(x)] : vector of probability of x given myu_x_i and sigma_x_i, which can be used to discuss applicability domains
         return estimatedymean, estimatedymode, responsibilities, px
 
     def inversegtmr(self, targetyvalue):
-        # targetvalue must be one candidate.
-        # But, multiple y-variables are OK.
-        # In model, the rigth m variables are handled as X-variables ( m is the number of X-variables ).
+        """
+        Parameters
+        ----------
+        targetvalue must be one candidate. But, multiple y-variables are OK.
+        In model, the rigth m variables are handled as X-variables ( m is the
+        number of X-variables ).
 
+        Returns
+        -------
+        responsibilities_inverse can be used to discussed assigned grids on
+        the GTM map.
+        py [p(y)] : vector of probability of y given myu_y_i and sigma_y_i,
+        which can be used to discuss applicability domains.
+        """
         myu_i = self.phiofmaprbfgrids.dot(self.W) + np.ones(
            (np.prod(self.shapeofmap), 1)).dot(np.reshape(self.bias, (1, len(self.bias))))
         delta_y = 1 / self.beta
@@ -239,7 +319,5 @@ class gtm:
             estimatedxmean = responsibilities_inverse.dot(myu_i[:, 0:-len(targetyvalue)])
             estimatedxmode = myu_i[np.argmax(responsibilities_inverse), 0:-len(targetyvalue)]
 
-        # responsibilities_inverse can be used to discussed assigned grids on the GTM map
-        # py [p(y)] : vector of probability of y given myu_y_i and sigma_y_i, which can be used to discuss applicability domains
         return estimatedxmean, estimatedxmode, responsibilities_inverse, py
 
