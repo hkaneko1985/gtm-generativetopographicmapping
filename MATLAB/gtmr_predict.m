@@ -37,6 +37,8 @@ if model.successflag
 else
     ypred_mode = zeros( size(X,1), 1);
     ypred_mean = zeros( size(X,1), 1);
+    w_kx = zeros( size(X,1), prod(model.shapeofmap));
+    px = zeros( size(X,1), prod(model.shapeofmap));
 end
 
 end
