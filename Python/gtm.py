@@ -25,6 +25,8 @@ class gtm:
 
     def calculate_grids(self, num_x, num_y):
         """
+        Calculate grid coordinates on the GTM map
+        
         Parameters
         ----------
         num_x : int
@@ -42,6 +44,8 @@ class gtm:
 
     def fit(self, inputdataset):
         """
+        Train the GTM map
+                
         Parameters
         ----------
         inputdataset : numpy.array or pandas.DataFrame
@@ -112,8 +116,16 @@ class gtm:
 
     def calculate_distance_between_phiW_and_input_distances(self, input_dataset):
         """
-        inputdataset : numpy.array
+        Calculate distance between phi*W
+        
+        Parameters
+        ----------
+        input_dataset : numpy.array
              Training dataset for GTM.
+             
+        Returns
+        -------
+        distance : distance between phi*W
         """
         distance = cdist(
            input_dataset,
@@ -172,6 +184,8 @@ class gtm:
 
     def mlr(self, X, y):
         """
+        Train the MLR model
+        
         Parameters
         ----------
         X, y : numpy.array or pandas.DataFrame
@@ -196,6 +210,8 @@ class gtm:
 
     def mlrpredict(self, X):
         """
+        Predict y-values from X-values using the MLR model
+        
         Parameters
         ----------
         X : numpy.array or pandas.DataFrame
@@ -207,7 +223,12 @@ class gtm:
 
     def inversegtmmlr(self, targetyvalue):
         """
-        targetvalue must be scaler.
+        Predict X-values from a y-value using the MLR model
+        
+        Parameters
+        ----------
+        targetvalue : a target y-value
+            scaler
 
         Returns
         -------
@@ -247,6 +268,8 @@ class gtm:
 
     def gtmrpredict(self, X):
         """
+        Predict y-values from X-values using the GTMR model
+        
         Parameters
         ----------
         X : numpy.array or pandas.DataFrame
@@ -280,12 +303,15 @@ class gtm:
         else:
             estimatedymean = np.zeros(X.spape[0])
             estimatedymode = np.zeros(X.spape[0])
-            responsibilities = np.empty([X.shape[0], myu_i.shape[0]])
+            px = np.empty([X.shape[0], np.prod(self.shapeofmap)])
+            responsibilities = np.empty([X.shape[0], np.prod(self.shapeofmap)])
 
         return estimatedymean, estimatedymode, responsibilities, px
 
     def inversegtmr(self, targetyvalue):
         """
+        Predict X-values from y-values using the GTMR model
+        
         Parameters
         ----------
         targetvalue must be one candidate. But, multiple y-variables are OK.
