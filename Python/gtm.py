@@ -109,9 +109,8 @@ class gtm:
             self.bias = self.W_with_one[-1, :]
 
             if self.display_flag:
-                print("{0}/{1} ... likelihood: {2}".format(
-                    iteration + 1, self.number_of_iterations,
-                    self.likelihood(input_dataset)))
+                print("{0}/{1} ... likelihood: {2}".format(iteration + 1, self.number_of_iterations,
+                                                           self.likelihood_value))
 
     def calculate_distance_between_phi_w_and_input_distances(self, input_dataset):
         """
@@ -137,7 +136,7 @@ class gtm:
 
     def responsibility(self, input_dataset):
         """
-        Get responsibilities.
+        Get responsibilities and likelihood.
 
         Parameters
         ----------
@@ -149,6 +148,8 @@ class gtm:
         -------
         reponsibilities : numpy.array
             Responsibilities of input_dataset for each grid point.
+        likelihood_value : scalar
+            likelihood of input_dataset.
         """
         input_dataset = np.array(input_dataset)
         distance = self.calculate_distance_between_phi_w_and_input_distances(input_dataset)
@@ -156,10 +157,15 @@ class gtm:
         sum_of_rbf_for_responsibility = rbf_for_responsibility.sum(axis=1)
         # return rbf_for_responsibility / np.reshape( sum_of_rbf_for_responsibility, (rbf_for_responsibility.shape[0],1))
         if np.count_nonzero(sum_of_rbf_for_responsibility) == len(sum_of_rbf_for_responsibility):
-            return rbf_for_responsibility / np.reshape(sum_of_rbf_for_responsibility,
-                                                       (rbf_for_responsibility.shape[0], 1))
+            reponsibilities = rbf_for_responsibility / np.reshape(sum_of_rbf_for_responsibility,
+                                                                  (rbf_for_responsibility.shape[0], 1))
         else:
-            return np.zeros(rbf_for_responsibility.shape)
+            reponsibilities = np.zeros(rbf_for_responsibility.shape)
+
+        self.likelihood_value = (np.log((self.beta / 2.0 / np.pi) ** (input_dataset.shape[1] / 2.0) /
+                                        np.prod(self.shape_of_map) * rbf_for_responsibility.sum(axis=1))).sum()
+
+        return reponsibilities
 
     def likelihood(self, input_dataset):
         """
@@ -173,8 +179,8 @@ class gtm:
 
         Returns
         -------
-        likelihood : numpy.array
-            likelihood of input_dataset for each grid point.
+        likelihood : scalar
+            likelihood of input_dataset.
         """
         input_dataset = np.array(input_dataset)
         distance = self.calculate_distance_between_phi_w_and_input_distances(input_dataset)
@@ -226,7 +232,7 @@ class gtm:
         
         Parameters
         ----------
-        targetvalue : a target y-value
+        target_v_alue : a target y-value
             scaler
 
         Returns
@@ -313,7 +319,7 @@ class gtm:
         
         Parameters
         ----------
-        targetvalue must be one candidate. But, multiple y-variables are OK.
+        targe_y_value must be one candidate. But, multiple y-variables are OK.
         In model, the rigth m variables are handled as X-variables ( m is the
         number of X-variables ).
 
