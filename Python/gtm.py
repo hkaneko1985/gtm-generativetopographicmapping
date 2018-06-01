@@ -148,7 +148,7 @@ class gtm:
         -------
         reponsibilities : numpy.array
             Responsibilities of input_dataset for each grid point.
-        likelihood_value : scalar
+        likelihood_value : float
             likelihood of input_dataset.
         """
         input_dataset = np.array(input_dataset)
