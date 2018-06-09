@@ -45,19 +45,17 @@ sumofabsW_old = 0;
 beta_old = 0;
 for iteration = 1 : numberofiterations
     responsibilities = calc_responsibility(model, inputdataset);
-    if isempty(responsibilities)
+    
+    phitGphietc = (phiofmaprbfgridswithone'*diag(sum(responsibilities))*phiofmaprbfgridswithone + lambdainemalgorithm/model.beta*diag(ones(size(phiofmaprbfgridswithone,2) , 1)));
+    if rcond(phitGphietc) < max(size(phitGphietc))*eps(norm(phitGphietc))
         model.successflag = 0;
         break;
     end
     
-    phitGphietc = (phiofmaprbfgridswithone'*diag(sum(responsibilities))*phiofmaprbfgridswithone + lambdainemalgorithm/model.beta*diag(ones(size(phiofmaprbfgridswithone,2) , 1)));
-%     if rcond(phitGphietc) < max(size(phitGphietc))*eps(norm(phitGphietc))
-%         model.successflag = 0;
-%         break;
-%     end
-    
     model.Wwithone = phitGphietc \ ...
         (phiofmaprbfgridswithone'*responsibilities'*inputdataset);
+%     model.Wwithone = pinv(phitGphietc) * ...
+%         (phiofmaprbfgridswithone'*responsibilities'*inputdataset);
     model.beta = numel(inputdataset) / sum(sum( responsibilities .* pdist2( inputdataset, phiofmaprbfgridswithone*model.Wwithone).^2 ));
 
     model.W = model.Wwithone(1:end-1,:);
