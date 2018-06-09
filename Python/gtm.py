@@ -88,9 +88,6 @@ class gtm:
                                               np.ones((np.prod(self.shape_of_map), 1))]
         for iteration in range(self.number_of_iterations):
             responsibilities = self.responsibility(input_dataset)
-            if responsibilities.sum() == 0:
-                self.success_flag = False
-                break
 
             phi_t_G_phi_etc = phi_of_map_rbf_grids_with_one.T.dot(
                 np.diag(responsibilities.sum(axis=0)).dot(phi_of_map_rbf_grids_with_one)
@@ -155,12 +152,13 @@ class gtm:
         distance = self.calculate_distance_between_phi_w_and_input_distances(input_dataset)
         rbf_for_responsibility = np.exp(-self.beta / 2.0 * distance)
         sum_of_rbf_for_responsibility = rbf_for_responsibility.sum(axis=1)
-        # return rbf_for_responsibility / np.reshape( sum_of_rbf_for_responsibility, (rbf_for_responsibility.shape[0],1))
-        if np.count_nonzero(sum_of_rbf_for_responsibility) == len(sum_of_rbf_for_responsibility):
-            reponsibilities = rbf_for_responsibility / np.reshape(sum_of_rbf_for_responsibility,
-                                                                  (rbf_for_responsibility.shape[0], 1))
-        else:
-            reponsibilities = np.zeros(rbf_for_responsibility.shape)
+        zero_sample_index = np.where(sum_of_rbf_for_responsibility == 0)[0]
+        if len(zero_sample_index):
+            sum_of_rbf_for_responsibility[zero_sample_index] = 1
+            rbf_for_responsibility[zero_sample_index, :] = 1 / rbf_for_responsibility.shape[1]
+        
+        reponsibilities = rbf_for_responsibility / np.reshape(sum_of_rbf_for_responsibility,
+                                                              (rbf_for_responsibility.shape[0], 1))
 
         self.likelihood_value = (np.log((self.beta / 2.0 / np.pi) ** (input_dataset.shape[1] / 2.0) /
                                         np.prod(self.shape_of_map) * rbf_for_responsibility.sum(axis=1))).sum()
