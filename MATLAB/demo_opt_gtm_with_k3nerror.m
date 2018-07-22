@@ -37,7 +37,7 @@ for gridnumber = 1 : size(gridparameters,1)
         responsibilities = calc_responsibility(model, inputdataset);
         % calculate the mean of the responsibility
         means = responsibilities * model.mapgrids;
-        k3nerrorofGTM(gridnumber) = k3nerror( inputdataset, means, k) + knnnormalizeddist( means, inputdataset, k);
+        k3nerrorofGTM(gridnumber) = k3nerror( inputdataset, means, k) + k3nerror( means, inputdataset, k);
     else
         k3nerrorofGTM(gridnumber) = 10^100;
     end
