@@ -14,13 +14,14 @@ class gtm:
 
     def __init__(self, shape_of_map=[30, 30], shape_of_rbf_centers=[10, 10],
                  variance_of_rbfs=4, lambda_in_em_algorithm=0.001,
-                 number_of_iterations=200, display_flag=1):
+                 number_of_iterations=200, display_flag=1, sparse_flag=False):
         self.shape_of_map = shape_of_map
         self.shape_of_rbf_centers = shape_of_rbf_centers
         self.variance_of_rbfs = variance_of_rbfs
         self.lambda_in_em_algorithm = lambda_in_em_algorithm
         self.number_of_iterations = number_of_iterations
         self.display_flag = display_flag
+        self.sparse_flag = sparse_flag
 
     def calculate_grids(self, num_x, num_y):
         """
@@ -82,6 +83,8 @@ class gtm:
                         + np.diag(np.ones(np.prod(self.shape_of_map)) * 10 ** 100)
                 ).min(axis=0).mean() / 2))
         self.bias = input_dataset.mean(axis=0)
+        
+        self.mixing_coefficients = np.ones(np.prod(self.shape_of_map)) / np.prod(self.shape_of_map)
 
         # EM algorithm
         phi_of_map_rbf_grids_with_one = np.c_[self.phi_of_map_rbf_grids,
@@ -104,6 +107,8 @@ class gtm:
 
             self.W = self.W_with_one[:-1, :]
             self.bias = self.W_with_one[-1, :]
+            if self.sparse_flag == True:
+                self.mixing_coefficients = sum(responsibilities) / input_dataset.shape[0]
 
             if self.display_flag:
                 print("{0}/{1} ... likelihood: {2}".format(iteration + 1, self.number_of_iterations,
@@ -150,7 +155,7 @@ class gtm:
         """
         input_dataset = np.array(input_dataset)
         distance = self.calculate_distance_between_phi_w_and_input_distances(input_dataset)
-        rbf_for_responsibility = np.exp(-self.beta / 2.0 * distance)
+        rbf_for_responsibility = np.exp(-self.beta / 2.0 * distance) * self.mixing_coefficients
         sum_of_rbf_for_responsibility = rbf_for_responsibility.sum(axis=1)
         zero_sample_index = np.where(sum_of_rbf_for_responsibility == 0)[0]
         if len(zero_sample_index):
@@ -182,8 +187,8 @@ class gtm:
         """
         input_dataset = np.array(input_dataset)
         distance = self.calculate_distance_between_phi_w_and_input_distances(input_dataset)
-        return (np.log((self.beta / 2.0 / np.pi) ** (input_dataset.shape[1] / 2.0) /
-                       np.prod(self.shape_of_map) * np.exp(-self.beta / 2.0 * distance).sum(axis=1))).sum()
+        return (np.log((self.beta / 2.0 / np.pi) ** (input_dataset.shape[1] / 2.0) *
+                       (np.exp(-self.beta / 2.0 * distance) * self.mixing_coefficients).sum(axis=1))).sum()
 
     def mlr(self, X, y):
         """
