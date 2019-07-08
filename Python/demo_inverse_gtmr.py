@@ -29,7 +29,6 @@ random_state_number = 30000
 
 # load a swiss roll dataset and make a y-variable
 original_X, color = make_swiss_roll(number_of_samples, 0, random_state=10)
-X = original_X
 raw_y = 0.3 * original_X[:, 0] - 0.1 * original_X[:, 1] + 0.2 * original_X[:, 2]
 original_y = raw_y + noise_ratio_of_y * raw_y.std(ddof=1) * np.random.randn(len(raw_y))
 # plot
@@ -43,6 +42,7 @@ plt.show()
 # autoscaling
 autoscaled_X = (original_X - original_X.mean(axis=0)) / original_X.std(axis=0, ddof=1)
 autoscaled_y = (original_y - original_y.mean()) / original_y.std(ddof=1)
+autoscaled_target_y_value = (target_y_value - original_y.mean()) / original_y.std(ddof=1)
 
 # construct GTMR model
 input_dataset = np.c_[autoscaled_X, autoscaled_y]
@@ -78,7 +78,7 @@ if model.success_flag:
     plt.show()
 
 # inverse analysis
-estimated_x_mean, estimated_x_mode, responsibilities_inverse, py = model.inverse_gtmr(target_y_value)
+estimated_x_mean, estimated_x_mode, responsibilities_inverse, py = model.inverse_gtmr(autoscaled_target_y_value)
 estimated_x_mean = estimated_x_mean * original_X.std(axis=0, ddof=1) + original_X.mean(axis=0)
 estimated_x_mode = estimated_x_mode * original_X.std(axis=0, ddof=1) + original_X.mean(axis=0)
 # print("estimated x-mean: {0}".format(estimated_x_mean))

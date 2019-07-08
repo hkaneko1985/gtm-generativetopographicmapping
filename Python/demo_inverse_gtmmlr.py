@@ -42,6 +42,7 @@ plt.show()
 
 # autoscaling
 autoscaled_X = (original_X - original_X.mean(axis=0)) / original_X.std(axis=0, ddof=1)
+autoscaled_target_y_value = (target_y_value - original_y.mean(axis=0)) / original_y.std(axis=0, ddof=1)
 
 # construct GTM model
 model = gtm(shape_of_map, shape_of_rbf_centers, variance_of_rbfs, lambda_in_em_algorithm, number_of_iterations,
@@ -79,7 +80,7 @@ if model.success_flag:
 model.mlr(original_X, original_y)
 
 # inverse analysis
-estimated_x_mean, estimated_x_mode, responsibilities_inverse = model.inverse_gtm_mlr(target_y_value)
+estimated_x_mean, estimated_x_mode, responsibilities_inverse = model.inverse_gtm_mlr(autoscaled_target_y_value)
 estimated_x_mean = estimated_x_mean * original_X.std(axis=0, ddof=1) + original_X.mean(axis=0)
 estimated_x_mode = estimated_x_mode * original_X.std(axis=0, ddof=1) + original_X.mean(axis=0)
 # print("estimated x-mean: {0}".format(estimated_x_mean))
