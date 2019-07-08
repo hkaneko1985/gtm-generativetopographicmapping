@@ -7,9 +7,8 @@
 
 import matplotlib.figure as figure
 import matplotlib.pyplot as plt
+from gtm import GTM
 from sklearn.datasets import load_iris
-
-from gtm import gtm
 
 # settings
 shape_of_map = [10, 10]
@@ -29,7 +28,7 @@ color = iris.target
 input_dataset = (input_dataset - input_dataset.mean(axis=0)) / input_dataset.std(axis=0, ddof=1)
 
 # construct GTM model
-model = gtm(shape_of_map, shape_of_rbf_centers, variance_of_rbfs, lambda_in_em_algorithm, number_of_iterations,
+model = GTM(shape_of_map, shape_of_rbf_centers, variance_of_rbfs, lambda_in_em_algorithm, number_of_iterations,
             display_flag)
 model.fit(input_dataset)
 
