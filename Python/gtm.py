@@ -10,7 +10,7 @@ from scipy.stats import norm, multivariate_normal
 from sklearn.decomposition import PCA
 
 
-class gtm:
+class GTM:
 
     def __init__(self, shape_of_map=[30, 30], shape_of_rbf_centers=[10, 10],
                  variance_of_rbfs=4, lambda_in_em_algorithm=0.001,
@@ -274,83 +274,66 @@ class gtm:
         #        discuss applicability domains
         return estimated_x_mean, estimated_x_mode, responsibilities_inverse
 
-    def gtmr_predict(self, X):
+    def gtmr_predict(self, input_variables, numbers_of_input_variables, numbers_of_output_variables):
         """
-        Predict y-values from X-values using the GTMR model
         
+        Predict values of variables for forward analysis (regression) and inverse analysis
+    
         Parameters
         ----------
-        X : numpy.array or pandas.DataFrame
-            X must be autoscaled.
-        Multiple y-variables are OK.
-        In model, the rigth p variables are handled as y-variables ( p is the
-        number of y-variables ).
-
+        input_variables: numpy.array or pandas.DataFrame
+            (autoscaled) m x n matrix of input variables of training data or test data,
+            m is the number of sammples and
+            n is the number of input variables
+            When this is X-variables, it is forward analysis (regression) and
+            when this is Y-variables, it is inverse analysis
+        numbers_of_input_variables: list or numpy.array
+            vector of numbers of input variables
+            When this is numbers of X-variables, it is forward analysis (regression) and
+            when this is numbers of Y-variables, it is inverse analysis
+        numbers_of_output_variables: list or numpy.array
+            vector of numbers of output variables
+            When this is numbers of Y-variables, it is forward analysis (regression) and
+            when this is numbers of X-variables, it is inverse analysis
+    
         Returns
-        responsibilities can be used to discussed assigned grids on the GTM
-        map.
-        px [p(x)] : vector of probability of x given myu_x_i and sigma_x_i,
-        which can be used to discuss applicability domains.
         -------
-
+        mode_of_estimated_mean : numpy.array
+            (autoscaled) m x k matrix of output variables estimated using mode of weights,
+            k is the number of output variables
+        weighted_estimated_mean : numpy.array
+            (autoscaled) m x k matrix of output variables estimated using weighted mean,
+        estimated_mean_for_all_components : numpy.array
+            (autoscaled) l x m x k matrix of output variables estimated for all components,
+        weights : numpy.array
+            m x l matrix of weights,
         """
-        if self.success_flag:
-            X = np.array(X)
-            myu_i = self.phi_of_map_rbf_grids.dot(self.W) + np.ones(
-                (np.prod(self.shape_of_map), 1)
-            ).dot(np.reshape(self.bias, (1, len(self.bias))))
-            delta_x = np.diag(np.ones(X.shape[1])) / self.beta
-            px = np.empty([X.shape[0], myu_i.shape[0]])
-            for i in range(myu_i.shape[0]):
-                px[:, i] = multivariate_normal.pdf(X, myu_i[i, 0:X.shape[1]], delta_x)
-
+        
+        input_variables = np.array(input_variables)
+        if input_variables.ndim == 0:
+            input_variables = np.reshape(input_variables, (1, 1))
+        elif input_variables.ndim == 1:
+            input_variables = np.reshape(input_variables, (1, input_variables.shape[0]))
+        if self.success_flag:            
+            means = self.phi_of_map_rbf_grids.dot(self.W) + np.ones(
+                            (np.prod(self.shape_of_map), 1)
+                        ).dot(np.reshape(self.bias, (1, len(self.bias))))
+            input_means = means[:, numbers_of_input_variables]
+            output_means = means[:, numbers_of_output_variables]
+            input_covariances = np.diag(np.ones(len(numbers_of_input_variables))) / self.beta
+            px = np.empty([input_variables.shape[0], input_means.shape[0]])
+            for sample_number in range(input_means.shape[0]):
+                px[:, sample_number] = multivariate_normal.pdf(input_variables, input_means[sample_number, :], input_covariances)
+                
             responsibilities = px.T / px.T.sum(axis=0)
             responsibilities = responsibilities.T
-            estimated_y_mean = responsibilities.dot(myu_i[:, X.shape[1]:])
-            estimated_y_mode = myu_i[np.argmax(responsibilities, axis=1), X.shape[1]:]
+            estimated_y_mean = responsibilities.dot(output_means)
+            estimated_y_mode = output_means[np.argmax(responsibilities, axis=1), :]
         else:
-            estimated_y_mean = np.zeros(X.spape[0])
-            estimated_y_mode = np.zeros(X.spape[0])
-            px = np.empty([X.shape[0], np.prod(self.shape_of_map)])
-            responsibilities = np.empty([X.shape[0], np.prod(self.shape_of_map)])
-
+            estimated_y_mean = np.zeros(input_variables.spape[0])
+            estimated_y_mode = np.zeros(input_variables.spape[0])
+            px = np.empty([input_variables.shape[0], np.prod(self.shape_of_map)])
+            responsibilities = np.empty([input_variables.shape[0], np.prod(self.shape_of_map)])
+    
+                
         return estimated_y_mean, estimated_y_mode, responsibilities, px
-
-    def inverse_gtmr(self, target_y_value):
-        """
-        Predict X-values from y-values using the GTMR model
-        
-        Parameters
-        ----------
-        targe_y_value must be one candidate. But, multiple y-variables are OK.
-        In model, the rigth m variables are handled as X-variables ( m is the
-        number of X-variables ).
-
-        Returns
-        -------
-        responsibilities_inverse can be used to discussed assigned grids on
-        the GTM map.
-        py [p(y)] : vector of probability of y given myu_y_i and sigma_y_i,
-        which can be used to discuss applicability domains.
-        """
-        myu_i = self.phi_of_map_rbf_grids.dot(self.W) + np.ones(
-            (np.prod(self.shape_of_map), 1)).dot(np.reshape(self.bias, (1, len(self.bias))))
-        delta_y = 1 / self.beta
-        py = np.empty(myu_i.shape[0])
-        if isinstance(target_y_value, int) or isinstance(target_y_value, float):
-            for i in range(myu_i.shape[0]):
-                py[i] = multivariate_normal.pdf(target_y_value, myu_i[i, -1], delta_y)
-
-            responsibilities_inverse = py / py.sum()
-            estimated_x_mean = responsibilities_inverse.dot(myu_i[:, 0:-1])
-            estimated_x_mode = myu_i[np.argmax(responsibilities_inverse), 0:-1]
-        else:
-            for i in range(myu_i.shape[0]):
-                py[i] = multivariate_normal.pdf(
-                    target_y_value, myu_i[i, -len(target_y_value)], delta_y)
-
-            responsibilities_inverse = py / py.sum()
-            estimated_x_mean = responsibilities_inverse.dot(myu_i[:, 0:-len(target_y_value)])
-            estimated_x_mode = myu_i[np.argmax(responsibilities_inverse), 0:-len(target_y_value)]
-
-        return estimated_x_mean, estimated_x_mode, responsibilities_inverse, py

@@ -9,10 +9,9 @@ import matplotlib.figure as figure
 import matplotlib.pyplot as plt
 # settings
 import numpy as np
-from sklearn.datasets import load_iris
-
-from gtm import gtm
+from gtm import GTM
 from k3nerror import k3nerror
+from sklearn.datasets import load_iris
 
 # settings
 candidates_of_shape_of_map = np.arange(30, 31, dtype=int)
@@ -45,7 +44,7 @@ for shape_of_map_grid in candidates_of_shape_of_map:
                 calculation_number += 1
                 print([calculation_number, all_calculation_numbers])
                 # construct GTM model
-                model = gtm([shape_of_map_grid, shape_of_map_grid],
+                model = GTM([shape_of_map_grid, shape_of_map_grid],
                             [shape_of_rbf_centers_grid, shape_of_rbf_centers_grid],
                             variance_of_rbfs_grid, lambda_in_em_algorithm_grid, number_of_iterations, display_flag)
                 model.fit(input_dataset)
@@ -74,7 +73,7 @@ variance_of_rbfs = parameters_and_k3nerror[optimized_hyperparameter_number, 2]
 lambda_in_em_algorithm = parameters_and_k3nerror[optimized_hyperparameter_number, 3]
 
 # construct GTM model
-model = gtm(shape_of_map, shape_of_rbf_centers, variance_of_rbfs, lambda_in_em_algorithm, number_of_iterations,
+model = GTM(shape_of_map, shape_of_rbf_centers, variance_of_rbfs, lambda_in_em_algorithm, number_of_iterations,
             display_flag)
 model.fit(input_dataset)
 
