@@ -13,17 +13,19 @@ from sklearn.datasets.samples_generator import make_s_curve
 from sklearn.model_selection import train_test_split
 
 # settings
-shape_of_map = [30, 30]
-shape_of_rbf_centers = [6, 6]
-variance_of_rbfs = 0.125
-lambda_in_em_algorithm = 0.0625
-number_of_iterations = 300
+fold_number = 2
+candidates_of_shape_of_map = np.arange(30, 31, dtype=int)
+candidates_of_shape_of_rbf_centers = np.arange(2, 22, 2, dtype=int)
+candidates_of_variance_of_rbfs = 2 ** np.arange(-5, 4, 2, dtype=float)
+candidates_of_lambda_in_em_algorithm = 2 ** np.arange(-4, 0, dtype=float)
+candidates_of_lambda_in_em_algorithm = np.append(0, candidates_of_lambda_in_em_algorithm)
+number_of_iterations = 200
 display_flag = 1
 noise_ratio_of_y = 0.1
 random_state_number = 30000
 
-number_of_samples = 1000
-number_of_test_samples = 200
+number_of_samples = 300
+number_of_test_samples = 100
 
 numbers_of_x = [0, 1, 2]
 numbers_of_y = [3, 4]
@@ -51,9 +53,18 @@ variables_train, variables_test = train_test_split(variables, test_size=number_o
 autoscaled_variables_train = (variables_train - variables_train.mean(axis=0)) / variables_train.std(axis=0, ddof=1)
 autoscaled_variables_test = (variables_test - variables_train.mean(axis=0)) / variables_train.std(axis=0, ddof=1)
 
+# optimize hyperparameter in GTMR with CV
+model = GTM()
+model.gtmr_cv_opt(autoscaled_variables_train, numbers_of_y, candidates_of_shape_of_map,
+                  candidates_of_shape_of_rbf_centers, candidates_of_variance_of_rbfs,
+                  candidates_of_lambda_in_em_algorithm, fold_number, number_of_iterations)
+model.display_flag = display_flag
+print('optimized shape of map :', model.shape_of_map)
+print('optimized shape of RBF centers :', model.shape_of_rbf_centers)
+print('optimized variance of RBFs :', model.variance_of_rbfs)
+print('optimized lambda in EM algorithm :', model.lambda_in_em_algorithm)
+
 # construct GTMR model
-model = GTM(shape_of_map, shape_of_rbf_centers, variance_of_rbfs, lambda_in_em_algorithm, number_of_iterations,
-            display_flag)
 model.fit(autoscaled_variables_train)
 if model.success_flag:
     # calculate of responsibilities
@@ -101,12 +112,12 @@ if model.success_flag:
         # yy-plot
         plt.figure(figsize=figure.figaspect(1))
         plt.scatter(variables_test[:, numbers_of_y[y_number]], predicted_y_test)
-        y_max = np.max(np.array([np.array(variables_test[:, numbers_of_y[y_number]]), predicted_y_test]))
-        y_min = np.min(np.array([np.array(variables_test[:, numbers_of_y[y_number]]), predicted_y_test]))
-        plt.plot([y_min - 0.05 * (y_max - y_min), y_max + 0.05 * (y_max - y_min)],
-                 [y_min - 0.05 * (y_max - y_min), y_max + 0.05 * (y_max - y_min)], 'k-')
-        plt.ylim(y_min - 0.05 * (y_max - y_min), y_max + 0.05 * (y_max - y_min))
-        plt.xlim(y_min - 0.05 * (y_max - y_min), y_max + 0.05 * (y_max - y_min))
+        YMax = np.max(np.array([np.array(variables_test[:, numbers_of_y[y_number]]), predicted_y_test]))
+        YMin = np.min(np.array([np.array(variables_test[:, numbers_of_y[y_number]]), predicted_y_test]))
+        plt.plot([YMin - 0.05 * (YMax - YMin), YMax + 0.05 * (YMax - YMin)],
+                 [YMin - 0.05 * (YMax - YMin), YMax + 0.05 * (YMax - YMin)], 'k-')
+        plt.ylim(YMin - 0.05 * (YMax - YMin), YMax + 0.05 * (YMax - YMin))
+        plt.xlim(YMin - 0.05 * (YMax - YMin), YMax + 0.05 * (YMax - YMin))
         plt.xlabel('Actual Y')
         plt.ylabel('Estimated Y')
         plt.show()

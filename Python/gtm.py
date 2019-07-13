@@ -4,7 +4,11 @@
 @author: Hiromasa Kaneko
 """
 # GTM (generative topographic mapping) class
+
+import math
+
 import numpy as np
+import numpy.matlib
 from scipy.spatial.distance import cdist
 from scipy.stats import norm, multivariate_normal
 from sklearn.decomposition import PCA
@@ -54,6 +58,9 @@ class GTM:
         """
         input_dataset = np.array(input_dataset)
         self.success_flag = True
+        self.shape_of_map = [int(self.shape_of_map[0]), int(self.shape_of_map[1])]
+        self.shape_of_rbf_centers = [int(self.shape_of_rbf_centers[0]), int(self.shape_of_rbf_centers[1])]
+
         # make rbf grids
         self.rbf_grids = self.calculate_grids(self.shape_of_rbf_centers[0],
                                               self.shape_of_rbf_centers[1])
@@ -83,7 +90,7 @@ class GTM:
                         + np.diag(np.ones(np.prod(self.shape_of_map)) * 10 ** 100)
                 ).min(axis=0).mean() / 2))
         self.bias = input_dataset.mean(axis=0)
-        
+
         self.mixing_coefficients = np.ones(np.prod(self.shape_of_map)) / np.prod(self.shape_of_map)
 
         # EM algorithm
@@ -161,10 +168,9 @@ class GTM:
         if len(zero_sample_index):
             sum_of_rbf_for_responsibility[zero_sample_index] = 1
             rbf_for_responsibility[zero_sample_index, :] = 1 / rbf_for_responsibility.shape[1]
-        
+
         reponsibilities = rbf_for_responsibility / np.reshape(sum_of_rbf_for_responsibility,
                                                               (rbf_for_responsibility.shape[0], 1))
-
         self.likelihood_value = (np.log((self.beta / 2.0 / np.pi) ** (input_dataset.shape[1] / 2.0) /
                                         np.prod(self.shape_of_map) * rbf_for_responsibility.sum(axis=1))).sum()
 
@@ -308,32 +314,105 @@ class GTM:
         weights : numpy.array
             m x l matrix of weights,
         """
-        
+
         input_variables = np.array(input_variables)
         if input_variables.ndim == 0:
             input_variables = np.reshape(input_variables, (1, 1))
         elif input_variables.ndim == 1:
             input_variables = np.reshape(input_variables, (1, input_variables.shape[0]))
-        if self.success_flag:            
+        if self.success_flag:
             means = self.phi_of_map_rbf_grids.dot(self.W) + np.ones(
-                            (np.prod(self.shape_of_map), 1)
-                        ).dot(np.reshape(self.bias, (1, len(self.bias))))
+                (np.prod(self.shape_of_map), 1)
+            ).dot(np.reshape(self.bias, (1, len(self.bias))))
             input_means = means[:, numbers_of_input_variables]
             output_means = means[:, numbers_of_output_variables]
             input_covariances = np.diag(np.ones(len(numbers_of_input_variables))) / self.beta
             px = np.empty([input_variables.shape[0], input_means.shape[0]])
             for sample_number in range(input_means.shape[0]):
-                px[:, sample_number] = multivariate_normal.pdf(input_variables, input_means[sample_number, :], input_covariances)
-                
+                px[:, sample_number] = multivariate_normal.pdf(input_variables, input_means[sample_number, :],
+                                                               input_covariances)
+
             responsibilities = px.T / px.T.sum(axis=0)
             responsibilities = responsibilities.T
             estimated_y_mean = responsibilities.dot(output_means)
             estimated_y_mode = output_means[np.argmax(responsibilities, axis=1), :]
         else:
-            estimated_y_mean = np.zeros(input_variables.spape[0])
-            estimated_y_mode = np.zeros(input_variables.spape[0])
+            estimated_y_mean = np.zeros(input_variables.shape[0])
+            estimated_y_mode = np.zeros(input_variables.shape[0])
             px = np.empty([input_variables.shape[0], np.prod(self.shape_of_map)])
             responsibilities = np.empty([input_variables.shape[0], np.prod(self.shape_of_map)])
-    
-                
+
         return estimated_y_mean, estimated_y_mode, responsibilities, px
+
+    def gtmr_cv_opt(self, dataset, numbers_of_output_variables, candidates_of_shape_of_map,
+                    candidates_of_shape_of_rbf_centers,
+                    candidates_of_variance_of_rbfs, candidates_of_lambda_in_em_algorithm, fold_number,
+                    number_of_iterations):
+
+        self.display_flag = 0
+        self.number_of_iterations = number_of_iterations
+        dataset = np.array(dataset)
+        numbers_of_output_variables = np.array(numbers_of_output_variables)
+        numbers_of_input_variables = np.arange(dataset.shape[1])
+        numbers_of_input_variables = np.delete(numbers_of_input_variables, numbers_of_output_variables)
+
+        min_number = math.floor(dataset.shape[0] / fold_number)
+        mod_number = dataset.shape[0] - min_number * fold_number
+        index = np.matlib.repmat(np.arange(1, fold_number + 1, 1), 1, min_number).ravel()
+        if mod_number != 0:
+            index = np.r_[index, np.arange(1, mod_number + 1, 1)]
+        #            np.random.seed(999)
+        fold_index_in_cv = np.random.permutation(index)
+        np.random.seed()
+
+        # grid search
+        y = np.ravel(dataset[:, numbers_of_output_variables])
+        parameters_and_r2_cv = []
+        all_calculation_numbers = len(candidates_of_shape_of_map) * len(candidates_of_shape_of_rbf_centers) * len(
+            candidates_of_variance_of_rbfs) * len(candidates_of_lambda_in_em_algorithm)
+        calculation_number = 0
+        for shape_of_map_grid in candidates_of_shape_of_map:
+            for shape_of_rbf_centers_grid in candidates_of_shape_of_rbf_centers:
+                for variance_of_rbfs_grid in candidates_of_variance_of_rbfs:
+                    for lambda_in_em_algorithm_grid in candidates_of_lambda_in_em_algorithm:
+                        calculation_number += 1
+                        estimated_y_in_cv = np.zeros([dataset.shape[0], len(numbers_of_output_variables)])
+                        success_flag_cv = True
+                        for fold_number_in_cv in np.arange(1, fold_number + 1, 1):
+                            dataset_train_in_cv = dataset[fold_index_in_cv != fold_number_in_cv, :]
+                            dataset_test_in_cv = dataset[fold_index_in_cv == fold_number_in_cv, :]
+                            self.shape_of_map = [shape_of_map_grid, shape_of_map_grid]
+                            self.shape_of_rbf_centers = [shape_of_rbf_centers_grid, shape_of_rbf_centers_grid]
+                            self.variance_of_rbfs = variance_of_rbfs_grid
+                            self.lambda_in_em_algorithm = lambda_in_em_algorithm_grid
+                            self.fit(dataset_train_in_cv)
+                            if self.success_flag:
+                                estimated_y_mean, estimated_y_mode, responsibilities, px = self.gtmr_predict(
+                                    dataset_test_in_cv[:, numbers_of_input_variables], numbers_of_input_variables,
+                                    numbers_of_output_variables)
+                                estimated_y_in_cv[fold_index_in_cv == fold_number_in_cv, :] = estimated_y_mode
+                            else:
+                                success_flag_cv = False
+                                break
+
+                        if success_flag_cv:
+                            y_pred = np.ravel(estimated_y_in_cv)
+                            r2_cv = float(1 - sum((y - y_pred) ** 2) / sum((y - y.mean()) ** 2))
+                        else:
+                            r2_cv = -10 ** 10
+                        parameters_and_r2_cv.append(
+                            [shape_of_map_grid, shape_of_rbf_centers_grid, variance_of_rbfs_grid,
+                             lambda_in_em_algorithm_grid,
+                             r2_cv])
+                        print([calculation_number, all_calculation_numbers, r2_cv])
+
+        # optimized GTMR
+        parameters_and_r2_cv = np.array(parameters_and_r2_cv)
+        optimized_hyperparameter_number = \
+            np.where(parameters_and_r2_cv[:, 4] == np.max(parameters_and_r2_cv[:, 4]))[0][0]
+        self.shape_of_map = [int(parameters_and_r2_cv[optimized_hyperparameter_number, 0]),
+                             int(parameters_and_r2_cv[optimized_hyperparameter_number, 0])]
+        self.shape_of_rbf_centers = [int(parameters_and_r2_cv[optimized_hyperparameter_number, 1]),
+                                     int(parameters_and_r2_cv[optimized_hyperparameter_number, 1])]
+        self.variance_of_rbfs = parameters_and_r2_cv[optimized_hyperparameter_number, 2]
+        self.lambda_in_em_algorithm = parameters_and_r2_cv[optimized_hyperparameter_number, 3]
