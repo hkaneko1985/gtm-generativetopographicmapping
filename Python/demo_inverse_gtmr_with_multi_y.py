@@ -19,9 +19,9 @@ target_y_value = [-0.5, -5]  # y-target for inverse analysis
 
 # settings
 shape_of_map = [30, 30]
-shape_of_rbf_centers = [4, 4]
-variance_of_rbfs = 0.5
-lambda_in_em_algorithm = 0.001
+shape_of_rbf_centers = [6, 6]
+variance_of_rbfs = 0.125
+lambda_in_em_algorithm = 0.0625
 number_of_iterations = 300
 display_flag = 1
 noise_ratio_of_y = 0.1
@@ -49,7 +49,7 @@ plt.ylabel('y2')
 plt.show()
 
 variables = np.c_[x, y1, y2]
-# standarize x and y
+# standardize x and y
 autoscaled_variables = (variables - variables.mean(axis=0)) / variables.std(axis=0, ddof=1)
 target_y_value = np.array(target_y_value)
 autoscaled_target_y_value = (target_y_value - variables.mean(axis=0)[numbers_of_y]) / variables.std(axis=0, ddof=1)[
@@ -100,3 +100,11 @@ if model.success_flag:
     estimated_x_mode_on_map = model.map_grids[np.argmax(responsibilities_y), :]
     #    print('estimated x-mean on map: {0}'.format(estimated_x_mean_on_map))
     print('estimated x-mode on map: {0}'.format(estimated_x_mode_on_map))
+
+    plt.scatter(modes[:, 0], modes[:, 1], c='blue')
+    plt.scatter(estimated_x_mode_on_map[0], estimated_x_mode_on_map[1], c='red', marker='x', s=100)
+    plt.ylim(-1.1, 1.1)
+    plt.xlim(-1.1, 1.1)
+    plt.xlabel('z1 (mode)')
+    plt.ylabel('z2 (mode)')
+    plt.show()

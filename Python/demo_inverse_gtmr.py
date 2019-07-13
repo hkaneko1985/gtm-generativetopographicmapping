@@ -43,7 +43,7 @@ fig.colorbar(p)
 plt.show()
 
 variables = np.c_[x, y]
-# standarize x and y
+# standardize x and y
 autoscaled_variables = (variables - variables.mean(axis=0)) / variables.std(axis=0, ddof=1)
 autoscaled_target_y_value = (target_y_value - variables.mean(axis=0)[numbers_of_y]) / variables.std(axis=0, ddof=1)[
     numbers_of_y]
@@ -93,3 +93,11 @@ if model.success_flag:
     estimated_x_mode_on_map = model.map_grids[np.argmax(responsibilities_y), :]
     #    print('estimated x-mean on map: {0}'.format(estimated_x_mean_on_map))
     print('estimated x-mode on map: {0}'.format(estimated_x_mode_on_map))
+
+    plt.scatter(modes[:, 0], modes[:, 1], c='blue')
+    plt.scatter(estimated_x_mode_on_map[0], estimated_x_mode_on_map[1], c='red', marker='x', s=100)
+    plt.ylim(-1.1, 1.1)
+    plt.xlim(-1.1, 1.1)
+    plt.xlabel('z1 (mode)')
+    plt.ylabel('z2 (mode)')
+    plt.show()

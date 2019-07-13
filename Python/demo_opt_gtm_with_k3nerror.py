@@ -65,10 +65,10 @@ for shape_of_map_grid in candidates_of_shape_of_map:
 parameters_and_k3nerror = np.array(parameters_and_k3nerror)
 optimized_hyperparameter_number = \
     np.where(parameters_and_k3nerror[:, 4] == np.min(parameters_and_k3nerror[:, 4]))[0][0]
-shape_of_map = [parameters_and_k3nerror[optimized_hyperparameter_number, 0],
-                parameters_and_k3nerror[optimized_hyperparameter_number, 0]]
-shape_of_rbf_centers = [parameters_and_k3nerror[optimized_hyperparameter_number, 1],
-                        parameters_and_k3nerror[optimized_hyperparameter_number, 1]]
+shape_of_map = [int(parameters_and_k3nerror[optimized_hyperparameter_number, 0]),
+                int(parameters_and_k3nerror[optimized_hyperparameter_number, 0])]
+shape_of_rbf_centers = [int(parameters_and_k3nerror[optimized_hyperparameter_number, 1]),
+                        int(parameters_and_k3nerror[optimized_hyperparameter_number, 1])]
 variance_of_rbfs = parameters_and_k3nerror[optimized_hyperparameter_number, 2]
 lambda_in_em_algorithm = parameters_and_k3nerror[optimized_hyperparameter_number, 3]
 

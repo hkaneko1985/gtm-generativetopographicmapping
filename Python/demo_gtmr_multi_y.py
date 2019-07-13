@@ -14,9 +14,9 @@ from sklearn.model_selection import train_test_split
 
 # settings
 shape_of_map = [30, 30]
-shape_of_rbf_centers = [4, 4]
-variance_of_rbfs = 0.5
-lambda_in_em_algorithm = 0.001
+shape_of_rbf_centers = [6, 6]
+variance_of_rbfs = 0.125
+lambda_in_em_algorithm = 0.0625
 number_of_iterations = 300
 display_flag = 1
 noise_ratio_of_y = 0.1
@@ -47,7 +47,7 @@ plt.show()
 variables = np.c_[x, y1, y2]
 variables_train, variables_test = train_test_split(variables, test_size=number_of_test_samples, random_state=100)
 
-# standarize X and y
+# standardize x and y
 autoscaled_variables_train = (variables_train - variables_train.mean(axis=0)) / variables_train.std(axis=0, ddof=1)
 autoscaled_variables_test = (variables_test - variables_train.mean(axis=0)) / variables_train.std(axis=0, ddof=1)
 
@@ -101,12 +101,12 @@ if model.success_flag:
         # yy-plot
         plt.figure(figsize=figure.figaspect(1))
         plt.scatter(variables_test[:, numbers_of_y[y_number]], predicted_y_test)
-        YMax = np.max(np.array([np.array(variables_test[:, numbers_of_y[y_number]]), predicted_y_test]))
-        YMin = np.min(np.array([np.array(variables_test[:, numbers_of_y[y_number]]), predicted_y_test]))
-        plt.plot([YMin - 0.05 * (YMax - YMin), YMax + 0.05 * (YMax - YMin)],
-                 [YMin - 0.05 * (YMax - YMin), YMax + 0.05 * (YMax - YMin)], 'k-')
-        plt.ylim(YMin - 0.05 * (YMax - YMin), YMax + 0.05 * (YMax - YMin))
-        plt.xlim(YMin - 0.05 * (YMax - YMin), YMax + 0.05 * (YMax - YMin))
+        y_max = np.max(np.array([np.array(variables_test[:, numbers_of_y[y_number]]), predicted_y_test]))
+        y_min = np.min(np.array([np.array(variables_test[:, numbers_of_y[y_number]]), predicted_y_test]))
+        plt.plot([y_min - 0.05 * (y_max - y_min), y_max + 0.05 * (y_max - y_min)],
+                 [y_min - 0.05 * (y_max - y_min), y_max + 0.05 * (y_max - y_min)], 'k-')
+        plt.ylim(y_min - 0.05 * (y_max - y_min), y_max + 0.05 * (y_max - y_min))
+        plt.xlim(y_min - 0.05 * (y_max - y_min), y_max + 0.05 * (y_max - y_min))
         plt.xlabel('Actual Y')
         plt.ylabel('Estimated Y')
         plt.show()
